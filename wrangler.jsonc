@@ -14,7 +14,7 @@
 
   // Environment variables (non-sensitive configuration)
   "vars": {
-    "STATUS_API_URL": "https://www.cloudflarestatus.com/api/v2/incidents/unresolved.json"
+    "STATUS_API_URL": "https://www.cloudflarestatus.com/api/v2/incidents.json"
   },
 
   // Secrets (set with: wrangler secret put GOOGLE_CHAT_WEBHOOK)
