@@ -13,9 +13,9 @@
   ],
 
   // Environment variables (non-sensitive configuration)
-  // Optional: Set MIN_IMPACT_LEVEL to filter notifications by severity (none, minor, major, critical)
   "vars": {
-    "STATUS_API_URL": "https://www.cloudflarestatus.com/api/v2/incidents.json"
+    "STATUS_API_URL": "https://www.cloudflarestatus.com/api/v2/incidents.json",
+    "MIN_IMPACT_LEVEL": "minor"  // Filter notifications by severity: "none", "minor", "major", "critical"
   },
 
   // Secrets (set with: wrangler secret put GOOGLE_CHAT_WEBHOOK)
