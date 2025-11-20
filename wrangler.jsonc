@@ -1,0 +1,27 @@
+{
+  "name": "cf-incidents-bot",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-20",
+  "account_id": "6b3bd3e4a3c3f11b51c67f98641a8688",
+
+  // KV namespace for tracking reported incidents
+  "kv_namespaces": [
+    {
+      "binding": "INCIDENTS_KV",
+      "id": "fa929fc008f2401baffef0ae581e4720"
+    }
+  ],
+
+  // Environment variables (non-sensitive configuration)
+  "vars": {
+    "STATUS_API_URL": "https://www.cloudflarestatus.com/api/v2/incidents/unresolved.json"
+  },
+
+  // Secrets (set with: wrangler secret put GOOGLE_CHAT_WEBHOOK)
+  // GOOGLE_CHAT_WEBHOOK - Google Chat webhook URL with tokens
+
+  // Scheduled trigger - runs every 5 minutes
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  }
+}
