@@ -8,6 +8,8 @@
 
 A comprehensive Cloudflare Worker that monitors the Cloudflare Status page and sends intelligent notifications to Google Chat. Features include resolution tracking, status updates, digest mode, metrics, and health monitoring.
 
+![Google Chat Notifications Example](docs/screenshot.png)
+
 ## Features
 
 ### Intelligent Notifications
