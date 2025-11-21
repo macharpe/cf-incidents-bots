@@ -157,13 +157,28 @@ Valid values: `"none"`, `"minor"`, `"major"`, `"critical"`
 
 ### Schedule
 
-The worker runs every 5 minutes by default. To change the schedule, update the cron expression in `wrangler.jsonc`:
+The worker runs every 5 minutes by default. To change the polling frequency:
 
-```jsonc
-"triggers": {
-  "crons": ["*/5 * * * *"]
-}
-```
+1. Edit the cron expression in `wrangler.jsonc`:
+   ```jsonc
+   "triggers": {
+     "crons": ["*/5 * * * *"]  // Change this value
+   }
+   ```
+
+2. Redeploy the worker:
+   ```bash
+   npm run deploy
+   ```
+
+**Common cron schedules**:
+- `*/1 * * * *` - Every 1 minute (fastest, may hit rate limits)
+- `*/5 * * * *` - Every 5 minutes (default, recommended)
+- `*/10 * * * *` - Every 10 minutes
+- `*/30 * * * *` - Every 30 minutes
+- `0 * * * *` - Every hour
+
+**Note**: Cron schedules cannot be changed via environment variables and require redeployment to take effect.
 
 ### Tunable Constants
 
