@@ -21,7 +21,14 @@
   // Secrets (set with: wrangler secret put GOOGLE_CHAT_WEBHOOK)
   // GOOGLE_CHAT_WEBHOOK - Google Chat webhook URL with tokens
 
-  // Scheduled trigger - runs every 5 minutes
+  // Scheduled trigger - Change this cron expression to adjust polling frequency
+  // NOTE: Requires redeployment (npm run deploy) to take effect
+  // Examples:
+  //   "*/1 * * * *"  - Every 1 minute
+  //   "*/5 * * * *"  - Every 5 minutes (default)
+  //   "*/10 * * * *" - Every 10 minutes
+  //   "*/30 * * * *" - Every 30 minutes
+  //   "0 * * * *"    - Every hour
   "triggers": {
     "crons": ["*/5 * * * *"]
   }
