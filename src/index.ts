@@ -860,7 +860,7 @@ async function processIncidents(env: Env, returnResults: boolean = false): Promi
       newIncidents.forEach(incident => {
         notifications.push(
           sendGoogleChatNotification(incident, env.GOOGLE_CHAT_WEBHOOK).catch(err => {
-            console.error(`Failed to send notification for ${incident.id}:`, err);
+            console.error('Failed to send notification for incident:', incident.id, err);
           })
         );
       });
@@ -871,7 +871,7 @@ async function processIncidents(env: Env, returnResults: boolean = false): Promi
   resolvedIncidents.forEach(incident => {
     notifications.push(
       sendGoogleChatResolutionNotification(incident, env.GOOGLE_CHAT_WEBHOOK).catch(err => {
-        console.error(`Failed to send resolution notification for ${incident.id}:`, err);
+        console.error('Failed to send resolution notification for incident:', incident.id, err);
       })
     );
   });
@@ -880,7 +880,7 @@ async function processIncidents(env: Env, returnResults: boolean = false): Promi
   monitoringIncidents.forEach(incident => {
     notifications.push(
       sendMonitoringNotification(incident, env.GOOGLE_CHAT_WEBHOOK).catch(err => {
-        console.error(`Failed to send monitoring notification for ${incident.id}:`, err);
+        console.error('Failed to send monitoring notification for incident:', incident.id, err);
       })
     );
   });
@@ -889,7 +889,7 @@ async function processIncidents(env: Env, returnResults: boolean = false): Promi
   statusUpdates.forEach(({ incident, oldStatus }) => {
     notifications.push(
       sendStatusUpdateNotification(incident, oldStatus, env.GOOGLE_CHAT_WEBHOOK).catch(err => {
-        console.error(`Failed to send status update notification for ${incident.id}:`, err);
+        console.error('Failed to send status update notification for incident:', incident.id, err);
       })
     );
   });
