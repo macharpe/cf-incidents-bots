@@ -22,6 +22,14 @@ The bot sends **5 different types** of notifications:
 4. **🔧 Monitoring Alerts** - Special notification when a fix is deployed and being monitored
 5. **📊 Digest Mode** - Batches multiple incidents (≥3) into a single summary notification
 
+### Threaded Conversations
+
+All notifications for the same incident appear in a **single Google Chat thread**:
+- Initial incident alert creates a new thread
+- Status updates, monitoring alerts, and resolution notifications reply to the same thread
+- Makes it easy to follow the complete incident lifecycle in one place
+- Uses Google Chat's `threadKey` feature for reliable threading
+
 ### Rich Notification Cards
 
 - Color-coded by incident severity:
@@ -29,6 +37,11 @@ The bot sends **5 different types** of notifications:
   - 🟠 **Major**: Orange
   - 🟡 **Minor**: Yellow
   - ⚪ **None**: Grey
+- Status-specific emojis for updates:
+  - 🔍 Investigating
+  - 🎯 Identified
+  - 👀 Monitoring
+  - ✅ Resolved
 - Displays affected Cloudflare components (e.g., "CDN/Cache, Workers")
 - Shows incident duration for resolved issues
 - Direct links to incident details and status page
@@ -235,6 +248,16 @@ You can integrate the `/health` endpoint with uptime monitoring services like:
 
 ## Testing
 
+### Test Threading
+
+Test the threading functionality without waiting for a real incident:
+
+```bash
+curl https://cf-incidents-bot.<your-subdomain>.workers.dev/test-thread | jq
+```
+
+This sends 3 test messages (investigating → identified → resolved) that should all appear in a single Google Chat thread.
+
 ### Manual Trigger
 
 Manually trigger the worker and see detailed results:
@@ -298,13 +321,14 @@ wrangler tail
 4. **Batch KV Lookup**: Fetches stored incident data in parallel (10x faster)
 5. **Detect Changes**: Compares current status with stored status
 6. **Smart Notifications**:
-   - New incidents → Send new incident alert (or digest if ≥3)
-   - Status changed to "monitoring" → Send monitoring alert
-   - Status progressed → Send status update
-   - Status changed to "resolved" → Send resolution notification
-7. **Update Storage**: Store new status in KV with 30-day TTL
-8. **Parallel Execution**: All notifications sent concurrently with retry logic
-9. **Update Metrics**: Track success/failure counts
+   - New incidents → Send new incident alert (or digest if ≥3) - creates new thread
+   - Status changed to "monitoring" → Send monitoring alert - replies to thread
+   - Status progressed → Send status update - replies to thread
+   - Status changed to "resolved" → Send resolution notification - replies to thread
+7. **Threading**: All notifications use the incident ID as `threadKey` so updates appear in the same thread
+8. **Update Storage**: Store new status in KV with 30-day TTL
+9. **Parallel Execution**: All notifications sent concurrently with retry logic
+10. **Update Metrics**: Track success/failure counts
 
 ### Data Storage
 

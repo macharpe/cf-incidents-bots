@@ -43,6 +43,23 @@ const IMPACT_EMOJIS: Record<string, string> = {
   none: '⚪'
 };
 
+// Status emoji mapping for follow-up messages
+const STATUS_EMOJIS: Record<string, string> = {
+  investigating: '🔍',
+  identified: '🎯',
+  monitoring: '👀',
+  resolved: '✅',
+  postmortem: '📋',
+};
+
+/**
+ * Build webhook URL with threading support
+ * Using threadKey + messageReplyOption allows follow-up messages to appear in the same thread
+ */
+function buildWebhookUrl(baseWebhookUrl: string, threadKey: string): string {
+  return `${baseWebhookUrl}&threadKey=${encodeURIComponent(threadKey)}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD`;
+}
+
 // Environment bindings
 interface Env {
   INCIDENTS_KV: KVNamespace;
@@ -214,11 +231,14 @@ function formatComponents(components?: Component[]): string {
 }
 
 /**
- * Send notification with retry
+ * Send notification with retry and optional threading support
  */
-async function sendNotification(webhookUrl: string, message: any): Promise<void> {
+async function sendNotification(webhookUrl: string, message: any, threadKey?: string): Promise<void> {
+  // Apply threading if threadKey is provided
+  const finalUrl = threadKey ? buildWebhookUrl(webhookUrl, threadKey) : webhookUrl;
+
   await withRetry(async () => {
-    const response = await fetch(webhookUrl, {
+    const response = await fetch(finalUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -340,12 +360,13 @@ async function sendGoogleChatNotification(incident: Incident, webhookUrl: string
     ],
   };
 
-  await sendNotification(webhookUrl, message);
+  // Use incident ID as threadKey so all updates for same incident appear in same thread
+  await sendNotification(webhookUrl, message, incident.id);
   console.log(`Notification sent for incident: ${incident.id} - ${incident.name}`);
 }
 
 /**
- * Send resolution notification
+ * Send resolution notification (appears in same thread as original incident)
  */
 async function sendGoogleChatResolutionNotification(incident: Incident, webhookUrl: string): Promise<void> {
   const emoji = '✅';
@@ -455,12 +476,14 @@ async function sendGoogleChatResolutionNotification(incident: Incident, webhookU
     ],
   };
 
-  await sendNotification(webhookUrl, message);
+  // Use incident ID as threadKey so resolution appears in same thread as original incident
+  await sendNotification(webhookUrl, message, incident.id);
   console.log(`Resolution notification sent for incident: ${incident.id} - ${incident.name}`);
 }
 
 /**
  * Send status update notification (for intermediate status changes)
+ * Appears in same thread as original incident
  */
 async function sendStatusUpdateNotification(incident: Incident, oldStatus: string, webhookUrl: string): Promise<void> {
   const emoji = IMPACT_EMOJIS[incident.impact] || IMPACT_EMOJIS.none;
@@ -528,12 +551,14 @@ async function sendStatusUpdateNotification(incident: Incident, oldStatus: strin
     ],
   };
 
-  await sendNotification(webhookUrl, message);
+  // Use incident ID as threadKey so status update appears in same thread as original incident
+  await sendNotification(webhookUrl, message, incident.id);
   console.log(`Status update notification sent for incident: ${incident.id} - ${oldStatus} → ${incident.status}`);
 }
 
 /**
  * Send monitoring notification (fix deployed)
+ * Appears in same thread as original incident
  */
 async function sendMonitoringNotification(incident: Incident, webhookUrl: string): Promise<void> {
   const emoji = '🔧';
@@ -593,12 +618,14 @@ async function sendMonitoringNotification(incident: Incident, webhookUrl: string
     ],
   };
 
-  await sendNotification(webhookUrl, message);
+  // Use incident ID as threadKey so monitoring update appears in same thread as original incident
+  await sendNotification(webhookUrl, message, incident.id);
   console.log(`Monitoring notification sent for incident: ${incident.id}`);
 }
 
 /**
  * Send digest notification (multiple incidents)
+ * Note: Digest notifications do not use threading as they cover multiple incidents
  */
 async function sendDigestNotification(incidents: Incident[], webhookUrl: string): Promise<void> {
   const emoji = '📊';
@@ -915,6 +942,92 @@ async function processIncidents(env: Env, returnResults: boolean = false): Promi
 }
 
 /**
+ * Test endpoint to simulate an incident with threading
+ * Sends initial message, waits 2 seconds, then sends follow-up messages in same thread
+ */
+async function handleTestThread(webhookUrl: string): Promise<Response> {
+  const testId = `test-${Date.now()}`;
+  const now = new Date().toISOString();
+
+  // Simulate initial incident (investigating)
+  const testIncident: Incident = {
+    id: testId,
+    name: '[TEST] Simulated API Degradation',
+    status: 'investigating',
+    impact: 'minor',
+    created_at: now,
+    updated_at: now,
+    started_at: now,
+    resolved_at: null,
+    shortlink: 'https://cloudflarestatus.com',
+    incident_updates: [
+      {
+        body: 'We are investigating reports of increased API latency. This is a TEST message to verify threading.',
+        status: 'investigating',
+        created_at: now,
+        display_at: now,
+      },
+    ],
+  };
+
+  try {
+    // Send initial notification (creates new thread)
+    await sendGoogleChatNotification(testIncident, webhookUrl);
+
+    // Wait 2 seconds
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Simulate status update (identified)
+    const identifiedTime = new Date().toISOString();
+    testIncident.status = 'identified';
+    testIncident.updated_at = identifiedTime;
+    testIncident.incident_updates.unshift({
+      body: 'The issue has been identified as a configuration problem. Engineers are working on a fix. This is a TEST follow-up message.',
+      status: 'identified',
+      created_at: identifiedTime,
+      display_at: identifiedTime,
+    });
+
+    // Send status update notification (should appear in same thread)
+    await sendStatusUpdateNotification(testIncident, 'investigating', webhookUrl);
+
+    // Wait 2 seconds
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Simulate resolution
+    const resolvedTime = new Date().toISOString();
+    testIncident.status = 'resolved';
+    testIncident.updated_at = resolvedTime;
+    testIncident.resolved_at = resolvedTime;
+    testIncident.incident_updates.unshift({
+      body: 'The issue has been resolved. All services are operating normally. This is a TEST resolution message.',
+      status: 'resolved',
+      created_at: resolvedTime,
+      display_at: resolvedTime,
+    });
+
+    // Send resolved notification (should appear in same thread)
+    await sendGoogleChatResolutionNotification(testIncident, webhookUrl);
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Test thread completed - check Google Chat for 3 messages in a single thread',
+      threadKey: testId,
+    }, null, 2), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    }, null, 2), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+/**
  * Main scheduled event handler
  */
 export default {
@@ -934,6 +1047,11 @@ export default {
   // Handle HTTP requests (testing and health check)
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    // Test threading endpoint
+    if (url.pathname === '/test-thread') {
+      return await handleTestThread(env.GOOGLE_CHAT_WEBHOOK);
+    }
 
     // Health check endpoint
     if (url.pathname === '/health') {
