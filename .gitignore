@@ -1,9 +1,35 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Cloudflare Wrangler
 .wrangler/
 .dev.vars
+
+# Logs
 *.log
+npm-debug.log*
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
 # Claude Code local settings
 .claude/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+
+# TypeScript cache
+*.tsbuildinfo
